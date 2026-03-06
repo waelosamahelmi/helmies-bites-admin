@@ -188,7 +188,7 @@ export function Analytics() {
               <div key={tenant.id} className="flex items-center justify-between py-2 border-b border-gray-100 last:border-0">
                 <div>
                   <div className="font-medium text-gray-900">{tenant.name}</div>
-                  <div className="text-sm text-gray-500">{tenant.slug}.helmiesbites.fi</div>
+                  <div className="text-sm text-gray-500">{tenant.slug}.helmiesbites.com</div>
                 </div>
                 <div className="flex items-center gap-3">
                   <span className={`px-2 py-1 text-xs font-medium rounded-full ${

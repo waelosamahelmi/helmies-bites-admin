@@ -193,12 +193,12 @@ export function Support() {
                 <div className="text-sm text-gray-500 mb-1">Restaurant</div>
                 <div className="font-medium text-gray-900">{selectedTicket.tenant.name}</div>
                 <a
-                  href={`https://${selectedTicket.tenant.slug}.helmiesbites.fi`}
+                  href={`https://${selectedTicket.tenant.slug}.helmiesbites.com`}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="text-sm text-orange-600 hover:underline flex items-center gap-1 mt-1"
                 >
-                  {selectedTicket.tenant.slug}.helmiesbites.fi <ExternalLink className="h-3 w-3" />
+                  {selectedTicket.tenant.slug}.helmiesbites.com <ExternalLink className="h-3 w-3" />
                 </a>
               </div>
             )}

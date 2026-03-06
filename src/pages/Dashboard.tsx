@@ -94,7 +94,7 @@ export function Dashboard() {
                   onClick={() => (window.location.href = `/tenants/${tenant.id}`)}
                 >
                   <h3 className="font-semibold text-gray-900">{tenant.name}</h3>
-                  <p className="text-sm text-gray-500">{tenant.slug}.helmiesbites.fi</p>
+                  <p className="text-sm text-gray-500">{tenant.slug}.helmiesbites.com</p>
                   <div className="mt-2 flex items-center gap-2">
                     <span className={`px-2 py-1 rounded-full text-xs font-medium ${
                       tenant.status === 'active'

@@ -13,7 +13,7 @@ export function Header() {
             </div>
             <div>
               <p className="text-sm font-medium text-gray-900">Admin</p>
-              <p className="text-xs text-gray-500">admin@helmiesbites.fi</p>
+              <p className="text-xs text-gray-500">admin@helmiesbites.com</p>
             </div>
           </div>
 

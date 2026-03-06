@@ -40,7 +40,7 @@ export function TenantDetail() {
         <div className="flex items-start justify-between">
           <div>
             <h1 className="text-2xl font-bold text-gray-900">{tenant.name}</h1>
-            <p className="text-gray-500">{tenant.slug}.helmiesbites.fi</p>
+            <p className="text-gray-500">{tenant.slug}.helmiesbites.com</p>
           </div>
           <div className="flex items-center gap-2">
             <span className={`px-3 py-1 rounded-full text-sm font-medium ${

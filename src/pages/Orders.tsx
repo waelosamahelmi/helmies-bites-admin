@@ -155,7 +155,7 @@ export function Orders() {
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm">
                       <a
-                        href={`https://${order.tenant.slug}.helmiesbites.fi/admin/orders/${order.id}`}
+                        href={`https://${order.tenant.slug}.helmiesbites.com/admin/orders/${order.id}`}
                         target="_blank"
                         rel="noopener noreferrer"
                         className="text-orange-600 hover:text-orange-700 flex items-center gap-1"
