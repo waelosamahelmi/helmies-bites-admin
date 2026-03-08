@@ -123,6 +123,9 @@ export default function Wizard() {
   const [generatingImageIndex, setGeneratingImageIndex] = useState<number | null>(null);
   const [wizardComplete, setWizardComplete] = useState(false);
   const [completedData, setCompletedData] = useState<any>(null);
+  const [automationTasks, setAutomationTasks] = useState<any[]>([]);
+  const [automationStatus, setAutomationStatus] = useState<string>('pending');
+  const [automationError, setAutomationError] = useState<string | null>(null);
   const [theme, setTheme] = useState(isTestMode ? TEST_DATA.theme : {
     primary_color: "#e65100",
     secondary_color: "#ff9800",
@@ -146,6 +149,47 @@ export default function Wizard() {
     delivery: "10:00-21:30",
     lunch: "11:00-14:00"
   });
+
+  // Connect to SSE for real-time automation progress
+  useEffect(() => {
+    if (!wizardComplete || !sessionId) return;
+
+    const eventSource = new EventSource(`${API_URL}/api/wizard/progress/${sessionId}`);
+    
+    eventSource.onmessage = (event) => {
+      try {
+        const data = JSON.parse(event.data);
+        
+        if (data.type === 'progress') {
+          setAutomationTasks(data.tasks || []);
+          setAutomationStatus(data.status);
+          if (data.automationError) {
+            setAutomationError(data.automationError);
+          }
+        } else if (data.type === 'complete') {
+          setAutomationStatus(data.status);
+          if (data.error) {
+            setAutomationError(data.error);
+          }
+          eventSource.close();
+        } else if (data.type === 'error') {
+          setAutomationError(data.message);
+          eventSource.close();
+        }
+      } catch (e) {
+        console.error('SSE parse error:', e);
+      }
+    };
+
+    eventSource.onerror = () => {
+      console.warn('SSE connection error');
+      eventSource.close();
+    };
+
+    return () => {
+      eventSource.close();
+    };
+  }, [wizardComplete, sessionId]);
 
   // Handle menu file upload
   const [menuFile, setMenuFile] = useState<File | null>(null);
@@ -720,21 +764,106 @@ export default function Wizard() {
     );
   }
 
+  // Task status helper
+  const getTaskIcon = (status: string) => {
+    switch (status) {
+      case 'completed': return '✅';
+      case 'in_progress': return '⏳';
+      case 'failed': return '❌';
+      default: return '⏸️';
+    }
+  };
+
+  const getTaskLabel = (type: string) => {
+    const labels: Record<string, string> = {
+      'github_repo': 'Create GitHub Repository',
+      'email_account': 'Create Email Account',
+      'vercel_deploy': 'Deploy to Vercel',
+      'domain_setup': 'Configure Domain',
+      'welcome_email': 'Send Welcome Email',
+    };
+    return labels[type] || type;
+  };
+
   // Success screen
   if (wizardComplete && completedData) {
+    const isActive = automationStatus === 'active';
+    const hasError = !!automationError;
+
     return (
-      <div className="min-h-screen bg-gradient-to-br from-green-50 to-emerald-50 p-4 flex items-center justify-center">
+      <div className={`min-h-screen p-4 flex items-center justify-center ${
+        isActive ? 'bg-gradient-to-br from-green-50 to-emerald-50' : 
+        hasError ? 'bg-gradient-to-br from-red-50 to-orange-50' :
+        'bg-gradient-to-br from-yellow-50 to-orange-50'
+      }`}>
         <Card className="max-w-lg w-full">
           <CardHeader className="text-center">
-            <div className="w-20 h-20 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
-              <CheckCircle className="w-10 h-10 text-green-600" />
+            <div className={`w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-4 ${
+              isActive ? 'bg-green-100' : hasError ? 'bg-red-100' : 'bg-yellow-100'
+            }`}>
+              {isActive ? (
+                <CheckCircle className="w-10 h-10 text-green-600" />
+              ) : hasError ? (
+                <span className="text-3xl">❌</span>
+              ) : (
+                <Loader2 className="w-10 h-10 text-yellow-600 animate-spin" />
+              )}
             </div>
-            <CardTitle className="text-2xl">🎉 Restaurant Created!</CardTitle>
+            <CardTitle className="text-2xl">
+              {isActive ? '🎉 Restaurant Live!' : hasError ? '⚠️ Setup Issue' : '🚀 Setting Up...'}
+            </CardTitle>
             <CardDescription>
-              Your restaurant "{completedData.tenant?.name || restaurantInfo.name}" is ready
+              {isActive 
+                ? `Your restaurant "${completedData.tenant?.name || restaurantInfo.name}" is ready!`
+                : hasError 
+                ? 'There was an issue during setup. See details below.'
+                : `Setting up "${completedData.tenant?.name || restaurantInfo.name}"...`
+              }
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
+            {/* Automation Progress */}
+            <div className="border rounded-lg p-4 space-y-2">
+              <Label className="text-sm font-semibold">Setup Progress</Label>
+              {automationTasks.length > 0 ? (
+                <div className="space-y-2">
+                  {automationTasks.map((task, idx) => (
+                    <div key={idx} className={`flex items-center gap-2 p-2 rounded text-sm ${
+                      task.status === 'completed' ? 'bg-green-50' :
+                      task.status === 'in_progress' ? 'bg-yellow-50' :
+                      task.status === 'failed' ? 'bg-red-50' :
+                      'bg-gray-50'
+                    }`}>
+                      <span>{getTaskIcon(task.status)}</span>
+                      <span className="flex-1">{getTaskLabel(task.type)}</span>
+                      {task.status === 'in_progress' && (
+                        <Loader2 className="w-4 h-4 animate-spin text-yellow-600" />
+                      )}
+                      {task.error && (
+                        <span className="text-xs text-red-600 max-w-[150px] truncate" title={task.error}>
+                          {task.error}
+                        </span>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                  <span>Initializing automation...</span>
+                </div>
+              )}
+            </div>
+
+            {/* Error Details */}
+            {automationError && (
+              <div className="bg-red-50 border border-red-200 rounded-lg p-3">
+                <Label className="text-xs text-red-700 font-semibold">Error Details</Label>
+                <p className="text-sm text-red-600 mt-1 font-mono break-all">{automationError}</p>
+              </div>
+            )}
+
+            {/* URLs */}
             <div className="bg-gray-50 rounded-lg p-4 space-y-3">
               <div>
                 <Label className="text-xs text-muted-foreground">Your Website</Label>
@@ -760,16 +889,15 @@ export default function Wizard() {
               </div>
               <div>
                 <Label className="text-xs text-muted-foreground">Status</Label>
-                <Badge variant="outline" className="bg-yellow-50 text-yellow-700 border-yellow-300">
-                  {completedData.tenant?.status || 'pending'} - Setting up...
+                <Badge variant="outline" className={
+                  isActive ? 'bg-green-50 text-green-700 border-green-300' :
+                  hasError ? 'bg-red-50 text-red-700 border-red-300' :
+                  'bg-yellow-50 text-yellow-700 border-yellow-300'
+                }>
+                  {automationStatus} {!isActive && !hasError && '- Processing...'}
                 </Badge>
               </div>
             </div>
-
-            <p className="text-sm text-muted-foreground text-center">
-              Your site is being set up. This may take a few minutes. 
-              You'll receive an email when it's ready!
-            </p>
 
             <div className="flex gap-2">
               <Button 
@@ -782,8 +910,9 @@ export default function Wizard() {
               <Button 
                 className="flex-1 bg-orange-500 hover:bg-orange-600"
                 onClick={() => window.open(completedData.adminUrl, '_blank')}
+                disabled={!isActive}
               >
-                Go to Admin ↗
+                {isActive ? 'Go to Admin ↗' : 'Please Wait...'}
               </Button>
             </div>
           </CardContent>
