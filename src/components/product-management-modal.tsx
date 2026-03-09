@@ -13,7 +13,7 @@ import { Switch } from "@/components/ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
-import { Plus, X, Upload, Percent, Tag, Save, Trash2, Store } from "lucide-react";
+import { Plus, X, Upload, Percent, Tag, Save, Trash2, Store, Sparkles } from "lucide-react";
 import type { MenuItem } from "@shared/schema";
 import { MenuItemToppingGroupAssignment } from "./menu-item-topping-group-assignment";
 
@@ -70,6 +70,7 @@ export function ProductManagementModal({
   const [isLoading, setIsLoading] = useState(false);
   const [showOfferSettings, setShowOfferSettings] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
+  const [isGeneratingImage, setIsGeneratingImage] = useState(false);
 
   useEffect(() => {
     if (product) {
@@ -196,6 +197,50 @@ export function ProductManagementModal({
       const discount = originalPrice - offerPrice;
       const percentage = (discount / originalPrice) * 100;
       return Math.round(percentage);
+    }
+  };
+
+  const handleGenerateImage = async () => {
+    if (!formData.name && !formData.nameEn) {
+      toast({
+        title: t("Virhe", "Error"),
+        description: t("Anna tuotteen nimi ennen kuvan luomista", "Enter product name before generating image"),
+        variant: "destructive",
+      });
+      return;
+    }
+    setIsGeneratingImage(true);
+    try {
+      const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000';
+      const response = await fetch(`${API_URL}/api/ai/generate-food-image`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name: formData.name,
+          nameEn: formData.nameEn,
+          description: formData.description,
+          descriptionEn: formData.descriptionEn,
+        }),
+      });
+      if (!response.ok) {
+        const err = await response.json().catch(() => ({ error: 'Generation failed' }));
+        throw new Error(err.error || 'Generation failed');
+      }
+      const { imageUrl } = await response.json();
+      setFormData(prev => ({ ...prev, imageUrl }));
+      toast({
+        title: t("Onnistui", "Success"),
+        description: t("Kuva luotu onnistuneesti", "Image generated successfully"),
+      });
+    } catch (error) {
+      console.error('Error generating image:', error);
+      toast({
+        title: t("Virhe", "Error"),
+        description: t("Kuvan luominen epäonnistui", "Image generation failed"),
+        variant: "destructive",
+      });
+    } finally {
+      setIsGeneratingImage(false);
     }
   };
 
@@ -433,6 +478,20 @@ export function ProductManagementModal({
                     )}
                   </Button>
                 </div>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={handleGenerateImage}
+                  disabled={isGeneratingImage}
+                  title={t("Luo kuva tekoälyllä", "Generate image with AI")}
+                >
+                  {isGeneratingImage ? (
+                    <span className="w-4 h-4 animate-spin">⟳</span>
+                  ) : (
+                    <Sparkles className="w-4 h-4" />
+                  )}
+                </Button>
               </div>
               {formData.imageUrl && (
                 <div className="mt-2">

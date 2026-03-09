@@ -575,7 +575,7 @@ export default function Wizard() {
         setCurrentStep(1);
         toast({ 
           title: data.resumed ? "Session Resumed" : "Session Started",
-          description: `Session ID: ${data.session.id.slice(0, 8)}...`
+          description: `Session ID: ${String(data.session.id).slice(0, 8)}...`
         });
       } else if (data.error) {
         throw new Error(data.error);
